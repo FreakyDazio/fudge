@@ -16,8 +16,8 @@ Select what fields you wish to view
 
 Be all unixy and stuff by combining it with other commands
 
-    $ fudge -p httpUserAgent | grep google | wc -l # google user agent count
-    $ fudge | json -d -c "/pingdom/i.test(this.httpUserAgent)" # view pingdom requests
+    $ fudge -p httpUserAgent access.log | grep google | wc -l # google user agent count
+    $ fudge access.log | json -d -c "/pingdom/i.test(this.httpUserAgent)" # view pingdom requests
 
 ### Disclaimer
 
