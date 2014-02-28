@@ -124,7 +124,7 @@ func init() {
 	app.Version = "1.0.0"
 	app.Usage = "parse and filter NGINX logs like a pro"
 	app.Flags = []cli.Flag{
-		cli.StringFlag{"format, f", "combined", "preset format of logs (default: main)"},
+		cli.StringFlag{"format, f", "combined", "preset format of logs"},
 	}
 	app.Action = perform
 }
