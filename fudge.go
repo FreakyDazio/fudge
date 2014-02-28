@@ -122,7 +122,7 @@ func perform(c *cli.Context) {
 func init() {
 	app.Name = "fudge"
 	app.Version = "1.0.0"
-	app.Usage = "parse and filter NGINX logs like a pro"
+	app.Usage = "parse log files like a pro"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{"format, f", "combined", "preset format of logs"},
 	}
