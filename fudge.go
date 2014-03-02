@@ -2,12 +2,14 @@ package main
 
 import (
 	"bufio"
+	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"github.com/codegangsta/cli"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
-	"errors"
 )
 
 type Line struct {
@@ -39,10 +41,8 @@ type CombinedParser struct {
 }
 
 var (
-	app     *cli.App = cli.NewApp()
-	scanner *bufio.Scanner
-	input   io.ReadCloser
-	parser  LineParser
+	app    *cli.App = cli.NewApp()
+	parser LineParser
 )
 
 const UnparsableLine string = "failed to parse line"
@@ -104,19 +104,52 @@ func processLine(line string) {
 	os.Stdout.Write([]byte("\n"))
 }
 
-func perform(c *cli.Context) {
-	input = os.Stdin
-	if len(c.Args()) == 1 {
-		var err error
-		input, err = os.Open(c.Args()[0])
+func processInput(input io.ReadCloser, gzipped bool) {
+	var scanner *bufio.Scanner
+	if gzipped {
+		gzipInput, err := gzip.NewReader(input)
 		handleError(err)
+		scanner = bufio.NewScanner(gzipInput)
+	} else {
+		scanner = bufio.NewScanner(input)
 	}
-	scanner = bufio.NewScanner(input)
-	selectParser(c.String("format"))
 	for scanner.Scan() {
-		go processLine(scanner.Text())
+		processLine(scanner.Text())
 	}
 	input.Close()
+}
+
+func listInputs(pattern string) []io.ReadCloser {
+	inputs := make([]io.ReadCloser, 0)
+	paths, err := filepath.Glob(pattern)
+	if err != nil {
+		displayError(err.Error())
+		return inputs
+	}
+	for _, path := range paths {
+		input, err := os.Open(path)
+		if err == nil {
+			inputs = append(inputs, input)
+		} else {
+			displayError(err.Error())
+		}
+	}
+	return inputs
+}
+
+func perform(c *cli.Context) {
+	selectParser(c.String("format"))
+	inputs := make([]io.ReadCloser, 0)
+	if len(c.Args()) == 0 {
+		inputs = append(inputs, os.Stdin)
+	} else {
+		for _, pattern := range c.Args() {
+			inputs = append(inputs, listInputs(pattern)...)
+		}
+	}
+	for _, input := range inputs {
+		processInput(input, c.Bool("gzip"))
+	}
 }
 
 func init() {
@@ -125,6 +158,7 @@ func init() {
 	app.Usage = "parse log files like a pro"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{"format, f", "combined", "preset format of logs"},
+		cli.BoolFlag{"gzip, g", "Decompress logs on the fly"},
 	}
 	app.Action = perform
 }
